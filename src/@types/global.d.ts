@@ -42,3 +42,6 @@ type Axios = "x" | "y" | "z";
 
 type Edition = "java" | "bedrock";
 type Locale = "en" | "ja";
+
+
+type SchematicOrientation = "vertical" | "horizontal";

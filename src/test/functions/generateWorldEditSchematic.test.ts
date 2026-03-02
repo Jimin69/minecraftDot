@@ -71,7 +71,6 @@ const skipTagPayload = (bytes: Uint8Array, type: TagType, offset: number): numbe
 };
 
 const getRootShortTag = (bytes: Uint8Array, tagName: string): number | undefined => {
-  // Root header: Compound + root name
   let cursor = 1;
   cursor = readString(bytes, cursor).nextOffset;
 
@@ -89,18 +88,36 @@ const getRootShortTag = (bytes: Uint8Array, tagName: string): number | undefined
   return undefined;
 };
 
-test("schematic export defaults to upright dimensions", async () => {
+const getDimensions = async (orientation?: SchematicOrientation) => {
   const blueprint = [
     ["minecraft:white_wool", "minecraft:black_wool"],
     ["minecraft:black_wool", "minecraft:white_wool"],
     ["minecraft:white_wool", "minecraft:white_wool"],
   ];
 
-  const blob = generateWorldEditSchematic(blueprint);
+  const blob = orientation
+    ? generateWorldEditSchematic(blueprint, orientation)
+    : generateWorldEditSchematic(blueprint);
   const compressed = new Uint8Array(await blob.arrayBuffer());
   const nbtBytes = gunzipSync(compressed);
 
-  expect(getRootShortTag(nbtBytes, "Width")).toBe(2);
-  expect(getRootShortTag(nbtBytes, "Height")).toBe(3);
-  expect(getRootShortTag(nbtBytes, "Length")).toBe(1);
+  return {
+    width: getRootShortTag(nbtBytes, "Width"),
+    height: getRootShortTag(nbtBytes, "Height"),
+    length: getRootShortTag(nbtBytes, "Length"),
+  };
+};
+
+test("schematic export defaults to standing orientation", async () => {
+  const dimensions = await getDimensions();
+  expect(dimensions.width).toBe(2);
+  expect(dimensions.height).toBe(3);
+  expect(dimensions.length).toBe(1);
+});
+
+test("schematic export supports flat orientation", async () => {
+  const dimensions = await getDimensions("horizontal");
+  expect(dimensions.width).toBe(2);
+  expect(dimensions.height).toBe(1);
+  expect(dimensions.length).toBe(3);
 });

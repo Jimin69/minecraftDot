@@ -100,23 +100,45 @@ const encodeVarInt = (value: number): number[] => {
   return bytes;
 };
 
-const generateWorldEditSchematic = (blueprint: string[][]): Blob => {
+const createPaletteAndBlockIndices = (blueprint: string[][], orientation: SchematicOrientation) => {
   const imageHeight = blueprint.length;
   const imageWidth = blueprint[0].length;
 
   const palette = new Map<string, number>();
   const blockIndices: number[] = [];
 
-  // BlockData order in Sponge schem: for y -> z -> x.
-  // Keep the art upright by mapping source top row to highest y.
-  for (let y = 0; y < imageHeight; y++) {
-    const sourceRow = imageHeight - 1 - y;
-    for (let x = 0; x < imageWidth; x++) {
-      const blockId = blueprint[sourceRow][x];
-      if (!palette.has(blockId)) palette.set(blockId, palette.size);
-      blockIndices.push(palette.get(blockId)!);
+  if (orientation === "vertical") {
+    // Wall mode: Width x Height x 1; top image row is high Y.
+    for (let y = 0; y < imageHeight; y++) {
+      const sourceRow = imageHeight - 1 - y;
+      for (let x = 0; x < imageWidth; x++) {
+        const blockId = blueprint[sourceRow][x];
+        if (!palette.has(blockId)) palette.set(blockId, palette.size);
+        blockIndices.push(palette.get(blockId)!);
+      }
+    }
+  } else {
+    // Flat mode: Width x 1 x Height.
+    for (let z = 0; z < imageHeight; z++) {
+      for (let x = 0; x < imageWidth; x++) {
+        const blockId = blueprint[z][x];
+        if (!palette.has(blockId)) palette.set(blockId, palette.size);
+        blockIndices.push(palette.get(blockId)!);
+      }
     }
   }
+
+  return { palette, blockIndices };
+};
+
+const generateWorldEditSchematic = (
+  blueprint: string[][],
+  orientation: SchematicOrientation = "vertical"
+): Blob => {
+  const imageHeight = blueprint.length;
+  const imageWidth = blueprint[0].length;
+
+  const { palette, blockIndices } = createPaletteAndBlockIndices(blueprint, orientation);
 
   const blockDataBytes = new Uint8Array(blockIndices.flatMap((index) => encodeVarInt(index)));
 
@@ -125,8 +147,8 @@ const generateWorldEditSchematic = (blueprint: string[][]): Blob => {
     writer.writeIntTag("Version", 2);
     writer.writeIntTag("DataVersion", 3465);
     writer.writeShortTag("Width", imageWidth);
-    writer.writeShortTag("Height", imageHeight);
-    writer.writeShortTag("Length", 1);
+    writer.writeShortTag("Height", orientation === "vertical" ? imageHeight : 1);
+    writer.writeShortTag("Length", orientation === "vertical" ? 1 : imageHeight);
     writer.writeIntArrayTag("Offset", [0, 0, 0]);
     writer.writeIntTag("PaletteMax", palette.size);
     writer.writeCompoundTag("Palette", () => {
