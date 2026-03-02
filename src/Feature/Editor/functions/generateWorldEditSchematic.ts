@@ -101,15 +101,18 @@ const encodeVarInt = (value: number): number[] => {
 };
 
 const generateWorldEditSchematic = (blueprint: string[][]): Blob => {
-  const height = blueprint.length;
-  const width = blueprint[0].length;
+  const imageHeight = blueprint.length;
+  const imageWidth = blueprint[0].length;
 
   const palette = new Map<string, number>();
   const blockIndices: number[] = [];
 
-  for (let z = 0; z < height; z++) {
-    for (let x = 0; x < width; x++) {
-      const blockId = blueprint[z][x];
+  // BlockData order in Sponge schem: for y -> z -> x.
+  // Keep the art upright by mapping source top row to highest y.
+  for (let y = 0; y < imageHeight; y++) {
+    const sourceRow = imageHeight - 1 - y;
+    for (let x = 0; x < imageWidth; x++) {
+      const blockId = blueprint[sourceRow][x];
       if (!palette.has(blockId)) palette.set(blockId, palette.size);
       blockIndices.push(palette.get(blockId)!);
     }
@@ -121,9 +124,9 @@ const generateWorldEditSchematic = (blueprint: string[][]): Blob => {
   writer.writeRootCompound("Schematic", () => {
     writer.writeIntTag("Version", 2);
     writer.writeIntTag("DataVersion", 3465);
-    writer.writeShortTag("Width", width);
-    writer.writeShortTag("Height", 1);
-    writer.writeShortTag("Length", height);
+    writer.writeShortTag("Width", imageWidth);
+    writer.writeShortTag("Height", imageHeight);
+    writer.writeShortTag("Length", 1);
     writer.writeIntArrayTag("Offset", [0, 0, 0]);
     writer.writeIntTag("PaletteMax", palette.size);
     writer.writeCompoundTag("Palette", () => {
@@ -140,7 +143,11 @@ const generateWorldEditSchematic = (blueprint: string[][]): Blob => {
   });
 
   const compressed = pako.gzip(writer.asUint8Array());
-  return new Blob([compressed], { type: "application/octet-stream" });
+  const compressedBuffer = compressed.buffer.slice(
+    compressed.byteOffset,
+    compressed.byteOffset + compressed.byteLength
+  ) as ArrayBuffer;
+  return new Blob([compressedBuffer], { type: "application/octet-stream" });
 };
 
 export default generateWorldEditSchematic;
