@@ -9,6 +9,7 @@ import CrossButton from "src/components/CrossButton.tsx";
 import { calcRBCoordinate, validInput } from "src/Feature/Editor/functions/cornerCoordinate";
 import generateCommand from "src/Feature/Editor/functions/generateCommand";
 import generatePackZip from "../../Feature/Editor/functions/generatePackZip";
+import generateWorldEditSchematic from "src/Feature/Editor/functions/generateWorldEditSchematic";
 import fileSaver from "file-saver";
 const { saveAs } = fileSaver;
 import EditionButton from "./EditionButton";
@@ -130,6 +131,11 @@ const CommandModal = ({ blueprint, isModalOpen, setIsModalOpen }: Props) => {
     );
   };
 
+  const handleGenerateSchematic = () => {
+    const schematic = generateWorldEditSchematic(blueprint);
+    saveAs(schematic, "minecraftDot.schem");
+  };
+
   if (blueprint === undefined || blueprint.length === 0) return <></>;
   return (
     <>
@@ -248,6 +254,12 @@ const CommandModal = ({ blueprint, isModalOpen, setIsModalOpen }: Props) => {
               disabled={!isCommandReady}
             >
               {t.COMMAND_GENERATION}
+            </button>
+            <button
+              onClick={handleGenerateSchematic}
+              className="p-1 rounded-md mt-2 bg-m-green-light text-white"
+            >
+              Download .schem (WorldEdit)
             </button>
             <div className="my-3">
               <Link to="/command-help" className="underline text-decoration">{t.HOW_TO_RUN_COMMAND}</Link>
