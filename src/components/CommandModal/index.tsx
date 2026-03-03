@@ -9,6 +9,7 @@ import CrossButton from "src/components/CrossButton.tsx";
 import { calcRBCoordinate, validInput } from "src/Feature/Editor/functions/cornerCoordinate";
 import generateCommand from "src/Feature/Editor/functions/generateCommand";
 import generatePackZip from "../../Feature/Editor/functions/generatePackZip";
+import generateWorldEditSchematic from "src/Feature/Editor/functions/generateWorldEditSchematic";
 import fileSaver from "file-saver";
 const { saveAs } = fileSaver;
 import EditionButton from "./EditionButton";
@@ -54,6 +55,7 @@ const CommandModal = ({ blueprint, isModalOpen, setIsModalOpen }: Props) => {
   const { t } = useLocale();
   const [isCommandReady, setIsCommandReady] = useState(false);
   const [editon, setEdition] = useState<Edition>("java");
+  const [schematicOrientation, setSchematicOrientation] = useState<SchematicOrientation>("vertical");
   const [RBCoordinate, setRBCoordinate] = useState<Coordinate3D>({ x: 0, y: 0, z: 0 });
   const [cornerCoordinates, setCornerCoordinates] = useState<CornerCoordinate>({
     ltx: 0,
@@ -128,6 +130,11 @@ const CommandModal = ({ blueprint, isModalOpen, setIsModalOpen }: Props) => {
         console.log("zip download error", err);
       }
     );
+  };
+
+  const handleGenerateSchematic = () => {
+    const schematic = generateWorldEditSchematic(blueprint, schematicOrientation);
+    saveAs(schematic, "minecraftDot.schem");
   };
 
   if (blueprint === undefined || blueprint.length === 0) return <></>;
@@ -248,6 +255,33 @@ const CommandModal = ({ blueprint, isModalOpen, setIsModalOpen }: Props) => {
               disabled={!isCommandReady}
             >
               {t.COMMAND_GENERATION}
+            </button>
+            <div className="mt-2 p-2 border border-neutral-600 rounded text-sm">
+              <div className="mb-1">Schematic orientation</div>
+              <label className="mr-3">
+                <input
+                  type="radio"
+                  name="schematicOrientation"
+                  checked={schematicOrientation === "vertical"}
+                  onChange={() => setSchematicOrientation("vertical")}
+                />
+                <span className="ml-1">Standing (wall)</span>
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="schematicOrientation"
+                  checked={schematicOrientation === "horizontal"}
+                  onChange={() => setSchematicOrientation("horizontal")}
+                />
+                <span className="ml-1">Flat (floor)</span>
+              </label>
+            </div>
+            <button
+              onClick={handleGenerateSchematic}
+              className="p-1 rounded-md mt-2 bg-m-green-light text-white"
+            >
+              Download .schem (WorldEdit)
             </button>
             <div className="my-3">
               <Link to="/command-help" className="underline text-decoration">{t.HOW_TO_RUN_COMMAND}</Link>
